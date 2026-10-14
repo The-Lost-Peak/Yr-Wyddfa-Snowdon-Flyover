@@ -87,6 +87,9 @@ function normBearing(b){
 }
 
 let map=null;
+/* starting view: looking down on the route (not out at the sky), zoomed out so the whole loop sits in the middle */
+const HOME_PITCH=25;
+const homePad=()=>{const c=map.getContainer();return {top:c.clientHeight*.3,bottom:c.clientHeight*.3,left:c.clientWidth*.26,right:c.clientWidth*.26};};
 
 let route=null,routeLen=0,progress=0,playing=false,camMode="follow";
 let userOverride=false;
@@ -165,7 +168,7 @@ function isIOS(){
     style:"mapbox://styles/mapbox/satellite-streets-v12",
     center:initialCenter,
     zoom:initialZoom,
-    pitch:75,
+    pitch:HOME_PITCH,
     bearing:initialBearing,
     antialias:true,
     attributionControl:false
@@ -278,7 +281,7 @@ function isIOS(){
 
         homeView={b:[[b[0],b[1]],[b[2],b[3]]],bearing:fitBearing};
         map.fitBounds(homeView.b,{
-          padding:60,pitch:75,bearing:fitBearing,duration:0
+          padding:homePad(),pitch:HOME_PITCH,bearing:fitBearing,duration:0
         });
 
         currentZoom = START_ZOOM;
@@ -347,7 +350,7 @@ document.getElementById("b-reset").onclick=()=>{
   userOverride=false;camMode="follow";showCam();
   camCenter=null;camBearing=null;
   if(playing){ currentZoom=START_ZOOM;targetZoom=START_ZOOM; return; }
-  if(homeView) map.fitBounds(homeView.b,{padding:60,pitch:75,bearing:homeView.bearing,duration:900});
+  if(homeView) map.fitBounds(homeView.b,{padding:homePad(),pitch:HOME_PITCH,bearing:homeView.bearing,duration:900});
 };
 
 document.getElementById("b-cam").onclick=function(){
@@ -355,7 +358,7 @@ document.getElementById("b-cam").onclick=function(){
   showCam();
   userOverride=false;camCenter=null;camBearing=null;
   currentZoom=START_ZOOM;targetZoom=START_ZOOM;
-  if(!playing && map) map.easeTo({pitch: camMode==="topdown" ? 0 : 75, duration:700});
+  if(!playing && map) map.easeTo({pitch: camMode==="topdown" ? 0 : HOME_PITCH, duration:700});
 };
 
 document.getElementById("b-lay").onclick=function(){
