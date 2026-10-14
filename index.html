@@ -89,7 +89,7 @@ function normBearing(b){
 let map=null;
 /* starting view: looking down on the route (not out at the sky), zoomed out so the whole loop sits in the middle */
 const HOME_PITCH=25;
-const homePad=()=>{const c=map.getContainer();return {top:c.clientHeight*.3,bottom:c.clientHeight*.3,left:c.clientWidth*.26,right:c.clientWidth*.26};};
+const homePad=()=>{const c=map.getContainer();return {top:c.clientHeight*.14,bottom:c.clientHeight*.14,left:c.clientWidth*.1,right:c.clientWidth*.2};};   // zoomed in closer (Rem); extra right for the buttons
 
 let route=null,routeLen=0,progress=0,playing=false,camMode="follow";
 let userOverride=false;
