@@ -163,6 +163,7 @@ function isIOS(){
     }
   }
 
+  const COOP=matchMedia("(pointer:coarse)").matches;
   map=new mapboxgl.Map({
     container:"map",
     style:"mapbox://styles/mapbox/satellite-streets-v12",
@@ -171,7 +172,9 @@ function isIOS(){
     pitch:HOME_PITCH,
     bearing:initialBearing,
     antialias:true,
-    attributionControl:false
+    attributionControl:false,
+    /* phones: one finger scrolls the page, two fingers move the map (off in full screen) */
+    cooperativeGestures:COOP && !document.body.classList.contains("ios-fullscreen")
   });
 
   /* COMPACT ATTRIBUTION (Mapbox logo bottom left + info icon) */
@@ -381,6 +384,10 @@ const EMBEDDED = window.self !== window.top;
 let pageFs = false;
 function setPageFs(on){
   pageFs = on;
+  /* full screen: one finger moves the map again */
+  if(map && matchMedia("(pointer:coarse)").matches && !document.body.classList.contains("ios-fullscreen")){
+    try{ map.dragPan.disable(); map._cooperativeGestures = !on; map.dragPan.enable(); }catch(e){}
+  }
   document.body.classList.toggle("fs", on);
   document.getElementById("i-exp").style.display = on ? "none" : "block";
   document.getElementById("i-col").style.display = on ? "block" : "none";
