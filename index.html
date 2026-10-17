@@ -259,6 +259,11 @@ function isIOS(){
       }
     });
 
+    if(line&&line.geometry&&line.geometry.coordinates&&line.geometry.coordinates.length){
+      const fl=document.createElement('div');fl.title='Start and finish';fl.style.cssText='width:24px;height:30px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))';
+      fl.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 30" width="24" height="30"><path d="M5 28V3" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M5 28V3" stroke="#1c1b1b" stroke-width="2.4" stroke-linecap="round"/><path d="M6.5 3.5h13l-3.2 5 3.2 5h-13z" fill="#ed2629" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><circle cx="5" cy="28" r="2.2" fill="#1c1b1b" stroke="#fff" stroke-width="1.4"/></svg>';
+      new mapboxgl.Marker({element:fl,anchor:'bottom-left',offset:[-5,2]}).setLngLat(line.geometry.coordinates[0]).addTo(map);
+    }
     if(line){
       const len=turf.length(line,{units:"kilometers"});
       const pts=[];
