@@ -32,6 +32,9 @@ body.fs .fs-btn{width:50px;height:50px}
 body.fs .r{right:20px}
 body.fs #b-fs{bottom:50px}body.fs #b-lay{bottom:110px}body.fs #b-cam{bottom:170px}body.fs #b-reset{bottom:230px}body.fs #b-speed{bottom:300px}body.fs #b-restart{bottom:360px}body.fs #b-play{bottom:420px}
 .mapboxgl-ctrl-bottom-right{right:0}
+#tap-hint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:9;padding:8px 14px;border-radius:999px;background:rgba(28,27,27,.78);color:#fff;font:600 12.5px/1 Figtree,Inter,system-ui,sans-serif;pointer-events:none;white-space:nowrap;display:none}
+body.lp-locked #tap-hint{display:block}body.fs #tap-hint{display:none!important}
+
 #b-zin,#b-zout{left:11px;right:auto}#b-zin{bottom:97px}#b-zout{bottom:49px}body.fs #b-zin,body.fs #b-zout{left:20px}body.fs #b-zin{bottom:110px}body.fs #b-zout{bottom:50px}
 
 </style>
@@ -40,6 +43,7 @@ body.fs #b-fs{bottom:50px}body.fs #b-lay{bottom:110px}body.fs #b-cam{bottom:170p
 <body>
 <div id="map"></div>
 
+<div id="tap-hint">Tap the map to explore</div>
 <button id="b-zin" class="fs-btn" title="Zoom in" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button>
 <button id="b-zout" class="fs-btn" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"></path></svg></button>
 <button id="b-reset" class="fs-btn r" title="Back to the start view" aria-label="Reset view"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg></button>
@@ -177,9 +181,10 @@ function isIOS(){
     antialias:true,
     attributionControl:false,
     /* phones: one finger scrolls the page, two fingers move the map (off in full screen) */
-    cooperativeGestures:COOP && !document.body.classList.contains("ios-fullscreen")
+    cooperativeGestures:false
   });
 
+  if(LP_TOUCH){ lpGestures(false); map.on("click",()=>{ if(!pageFs) setPageFs(true); }); }
   /* COMPACT ATTRIBUTION (Mapbox logo bottom left + info icon) */
   map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
@@ -317,6 +322,7 @@ function sendProg(force){
 }
 window.addEventListener("message",e=>{
   const d=e.data||{};
+  if(d.type==="lpFsOff" && pageFs){ setPageFs(false); return; }
   if(d.type==="lpSeek" && route && map && typeof d.f==="number"){
     progress=Math.max(0,Math.min(1,d.f))*routeLen;
     const pos=turf.along(route,progress,{units:"kilometers"}).geometry.coordinates;
@@ -389,13 +395,21 @@ function syncFs(){
 ["fullscreenchange","webkitfullscreenchange"].forEach(ev=>document.addEventListener(ev,syncFs));
 
 /* on a Lost Peak page: ask the page to grow this map to fill the screen (same as the Ethels map); works on iPhone too */
+/* phones (Rem, 22 Oct 2026): two-finger moving inside the page was jittery, so on a phone the map stays still while
+   the page scrolls; tap it to open it full screen, where one finger moves it as normal */
+const LP_TOUCH = matchMedia("(pointer:coarse)").matches && window.self !== window.top && !document.body.classList.contains("ios-fullscreen");
+function lpGestures(on){
+  if(!map) return;
+  ["dragPan","touchZoomRotate","dragRotate","touchPitch","doubleClickZoom","scrollZoom"].forEach(h=>{ try{ on ? map[h].enable() : map[h].disable(); }catch(e){} });
+  document.body.classList.toggle("lp-locked", !on);
+}
 const EMBEDDED = window.self !== window.top;
 let pageFs = false;
 function setPageFs(on){
   pageFs = on;
   /* full screen: one finger moves the map again */
   if(map && matchMedia("(pointer:coarse)").matches && !document.body.classList.contains("ios-fullscreen")){
-    try{ map.dragPan.disable(); map._cooperativeGestures = !on; map.dragPan.enable(); }catch(e){}
+    if(LP_TOUCH) lpGestures(on);
   }
   document.body.classList.toggle("fs", on);
   document.getElementById("i-exp").style.display = on ? "none" : "block";
