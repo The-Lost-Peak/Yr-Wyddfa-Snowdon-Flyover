@@ -32,12 +32,16 @@ body.fs .fs-btn{width:50px;height:50px}
 body.fs .r{right:20px}
 body.fs #b-fs{bottom:50px}body.fs #b-lay{bottom:110px}body.fs #b-cam{bottom:170px}body.fs #b-reset{bottom:230px}body.fs #b-speed{bottom:300px}body.fs #b-restart{bottom:360px}body.fs #b-play{bottom:420px}
 .mapboxgl-ctrl-bottom-right{right:0}
+#b-zin,#b-zout{left:11px;right:auto}#b-zin{top:11px}#b-zout{top:57px}body.fs #b-zin,body.fs #b-zout{left:20px}body.fs #b-zin{top:20px}body.fs #b-zout{top:80px}
+
 </style>
 </head>
 
 <body>
 <div id="map"></div>
 
+<button id="b-zin" class="fs-btn" title="Zoom in" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button>
+<button id="b-zout" class="fs-btn" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"></path></svg></button>
 <button id="b-reset" class="fs-btn r" title="Back to the start view" aria-label="Reset view"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg></button>
 <button id="b-cam" class="fs-btn r" title="Switch between 3D and top-down view" aria-label="Switch camera"><svg id="i-3d" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z"></path><path d="M3 7l9 5 9-5M12 12v10"></path></svg><svg id="i-2d" viewBox="0 0 24 24" style="display:none"><path d="M9 4 3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"></path><path d="M9 4v13.5M15 6.5V20"></path></svg></button>
 <button id="b-lay" class="fs-btn r" title="Switch to topographic map" aria-label="Switch map layer"><svg viewBox="0 0 24 24"><polygon points="12 2 22 8.5 12 15 2 8.5 12 2"></polygon><polyline points="2 15.5 12 22 22 15.5"></polyline></svg></button>
@@ -418,6 +422,19 @@ document.getElementById("b-fs").onclick=()=>{
     else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
   }
 };
+
+/* zoom buttons: change the flyover distance without stopping it (fingers stop it) */
+function lpZoom(d){
+  if(!map) return;
+  if(playing && (camMode==="follow"||camMode==="topdown")){
+    userOverride=false;
+    targetZoom=Math.max(11,Math.min(18,targetZoom+d));
+  }else{
+    map.easeTo({zoom:map.getZoom()+d,duration:300});
+  }
+}
+document.getElementById("b-zin").onclick=()=>lpZoom(0.7);
+document.getElementById("b-zout").onclick=()=>lpZoom(-0.7);
 
 function tick(ts){
   if(!lastTs) lastTs=ts;
