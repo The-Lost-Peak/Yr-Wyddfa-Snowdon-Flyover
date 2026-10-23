@@ -224,14 +224,14 @@ function isIOS(){
     });
 
     map.addSource("route",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
-    map.addLayer({id:"route-casing",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#fff","line-width":11,"line-opacity":0.95}});
+    map.addLayer({id:"route-casing",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#fff","line-width":5.5,"line-opacity":0.95}});
     map.addLayer({
       id:"route-line",
       type:"line",
       source:"route",
       paint:{
         "line-color":"#EC2629",
-        "line-width":7,
+        "line-width":3.5,
         "line-opacity":0.95
       }
     });
