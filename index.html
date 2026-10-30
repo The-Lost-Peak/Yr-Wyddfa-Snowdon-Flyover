@@ -236,6 +236,7 @@ function isIOS(){
       }
     });
 
+    /*lp-sect*/map.addSource("sect",{type:"geojson",data:{type:"FeatureCollection",features:[]}});map.addLayer({id:"sect-casing",type:"line",source:"sect",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#fff","line-width":10,"line-opacity":1}});map.addLayer({id:"sect-line",type:"line",source:"sect",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#EC2629","line-width":6.5,"line-opacity":1}});map.addSource("sect-end",{type:"geojson",data:{type:"FeatureCollection",features:[]}});map.addLayer({id:"sect-end-pt",type:"circle",source:"sect-end",paint:{"circle-radius":5,"circle-color":"#1c1b1b","circle-stroke-width":2.5,"circle-stroke-color":"#fff"}});/*/lp-sect*/
     await addArrow();
 
     map.addLayer({
@@ -284,7 +285,7 @@ function isIOS(){
       route={type:"Feature",geometry:{type:"LineString",coordinates:pts}};
       routeLen=len;
 
-      map.getSource("route").setData(route);
+      map.getSource("route").setData(route);lpReady=true;try{ window.parent.postMessage({type:"lpReady"}, "*"); }catch(e){}
       map.getSource("cursor").setData(turf.point(pts[0]));
 
       map.once("idle",()=>{
@@ -323,6 +324,8 @@ function sendProg(force){
 window.addEventListener("message",e=>{
   const d=e.data||{};
   if(d.type==="lpFsOff" && pageFs){ setPageFs(false); return; }
+  if(d.type==="lpPing"){ if(lpReady) try{ window.parent.postMessage({type:"lpReady"}, "*"); }catch(e){} return; }
+  if(d.type==="lpSection" && route && map && typeof d.a==="number" && typeof d.b==="number"){ playSection(d.a,d.b); return; }
   if(d.type==="lpSeek" && route && map && typeof d.f==="number"){
     progress=Math.max(0,Math.min(1,d.f))*routeLen;
     const pos=turf.along(route,progress,{units:"kilometers"}).geometry.coordinates;
@@ -332,6 +335,20 @@ window.addEventListener("message",e=>{
     sendProg(true);
   }
 });
+/*lp-sect-fn*/let lpReady=false,sectEnd=null,sectOn=false;
+/* Route Guide step: fade the rest of the route, draw that stretch in red, put the walker at its start and fly along it to its end */
+function lpFade(on){sectOn=on;try{map.setPaintProperty("route-line","line-opacity",on?0.3:0.95);map.setPaintProperty("route-casing","line-opacity",on?0.3:0.95);map.setPaintProperty("route-arrows","icon-opacity",on?0:1);if(!on){map.getSource("sect").setData({type:"FeatureCollection",features:[]});map.getSource("sect-end").setData({type:"FeatureCollection",features:[]});}}catch(e){}}
+function playSection(fa,fb){
+  const a=Math.max(0,Math.min(1,fa))*routeLen, b=Math.max(0,Math.min(1,fb))*routeLen;
+  if(b-a<0.01) return;
+  map.getSource("sect").setData(turf.lineSliceAlong(route,a,b,{units:"kilometers"}));
+  map.getSource("sect-end").setData(turf.point(turf.along(route,b,{units:"kilometers"}).geometry.coordinates));lpFade(true);
+  const want=(b-a)/(20*0.28);let ix=0;SPEEDS.forEach((s,i)=>{ if(Math.abs(s[1]-want)<Math.abs(SPEEDS[ix][1]-want)) ix=i; });
+  speedIx=ix;const sb=document.getElementById("b-speed");if(sb){const q=sb.querySelector("b");if(q)q.textContent=SPEEDS[ix][0]+"×";}
+  progress=a;sectEnd=b;camMode="follow";if(typeof showCam==="function")showCam();
+  map.getSource("cursor").setData(turf.point(turf.along(route,a,{units:"kilometers"}).geometry.coordinates));
+  setPlaying(true);sendProg(true);
+}/*/lp-sect-fn*/
 const SPEEDS=[[1,0.35],[2,0.7],[4,1.4],[8,2.8]];
 let speedIx=0;
 
@@ -346,9 +363,10 @@ function setPlaying(v){
   document.getElementById("b-play").setAttribute("aria-label", playing ? "Pause flyover" : "Play flyover");
   document.getElementById("b-play").classList.toggle("on",playing);
 }
-document.getElementById("b-play").onclick=()=>setPlaying(!playing);
+document.getElementById("b-play").onclick=()=>{ if(sectOn&&sectEnd===null&&!playing) lpFade(false); setPlaying(!playing); };
 
 document.getElementById("b-restart").onclick=()=>{
+  if(sectOn)lpFade(false);sectEnd=null;
   if(!route || !map) return;
   progress=0;
   map.getSource("cursor").setData(turf.point(route.geometry.coordinates[0]));
@@ -458,6 +476,7 @@ function tick(ts){
   if(playing && route && map){
     const speed=SPEEDS[speedIx][1];
     progress+=speed*dt*0.28;
+    if(sectEnd!==null && progress>=sectEnd){ progress=sectEnd; sectEnd=null; setPlaying(false); }
     if(progress>routeLen) progress=0;
 
     const pos=turf.along(route,progress,{units:"kilometers"}).geometry.coordinates;
