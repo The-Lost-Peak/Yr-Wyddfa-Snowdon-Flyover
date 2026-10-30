@@ -236,7 +236,7 @@ function isIOS(){
       }
     });
 
-    /*lp-sect*/map.addSource("sect",{type:"geojson",data:{type:"FeatureCollection",features:[]}});map.addLayer({id:"sect-casing",type:"line",source:"sect",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#fff","line-width":10,"line-opacity":1}});map.addLayer({id:"sect-line",type:"line",source:"sect",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#EC2629","line-width":6.5,"line-opacity":1}});map.addSource("sect-end",{type:"geojson",data:{type:"FeatureCollection",features:[]}});map.addLayer({id:"sect-end-pt",type:"circle",source:"sect-end",paint:{"circle-radius":5,"circle-color":"#1c1b1b","circle-stroke-width":2.5,"circle-stroke-color":"#fff"}});/*/lp-sect*/
+    /*lp-sect*/map.addSource("sect",{type:"geojson",data:{type:"FeatureCollection",features:[]}});map.addLayer({id:"sect-casing",type:"line",source:"sect",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#fff","line-width":10,"line-opacity":1}});map.addLayer({id:"sect-line",type:"line",source:"sect",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#3899EC","line-width":6.5,"line-opacity":1}});map.addSource("sect-end",{type:"geojson",data:{type:"FeatureCollection",features:[]}});map.addLayer({id:"sect-end-pt",type:"circle",source:"sect-end",paint:{"circle-radius":5,"circle-color":"#3899EC","circle-stroke-width":2.5,"circle-stroke-color":"#fff"}});/*/lp-sect*/
     await addArrow();
 
     map.addLayer({
@@ -335,19 +335,28 @@ window.addEventListener("message",e=>{
     sendProg(true);
   }
 });
-/*lp-sect-fn*/let lpReady=false,sectEnd=null,sectOn=false;
-/* Route Guide step: fade the rest of the route, draw that stretch in red, put the walker at its start and fly along it to its end */
-function lpFade(on){sectOn=on;try{map.setPaintProperty("route-line","line-opacity",on?0.3:0.95);map.setPaintProperty("route-casing","line-opacity",on?0.3:0.95);map.setPaintProperty("route-arrows","icon-opacity",on?0:1);if(!on){map.getSource("sect").setData({type:"FeatureCollection",features:[]});map.getSource("sect-end").setData({type:"FeatureCollection",features:[]});}}catch(e){}}
+/*lp-sect-fn*/let lpReady=false,sectEnd=null,sectOn=false,sectTok=0;
+/* Route Guide step (Rem, 31 Oct 2026): that stretch in our blue, a bird's-eye view of it first (the dot waits at its start),
+   then the camera drops into the normal 3D flyover and follows the dot to the end of the stretch */
+function lpFade(on){sectOn=on;if(!on){sectTok++;try{map.getSource("sect").setData({type:"FeatureCollection",features:[]});map.getSource("sect-end").setData({type:"FeatureCollection",features:[]});}catch(e){}}}
 function playSection(fa,fb){
   const a=Math.max(0,Math.min(1,fa))*routeLen, b=Math.max(0,Math.min(1,fb))*routeLen;
   if(b-a<0.01) return;
-  map.getSource("sect").setData(turf.lineSliceAlong(route,a,b,{units:"kilometers"}));
-  map.getSource("sect-end").setData(turf.point(turf.along(route,b,{units:"kilometers"}).geometry.coordinates));lpFade(true);
+  const sect=turf.lineSliceAlong(route,a,b,{units:"kilometers"});
+  map.getSource("sect").setData(sect);sectOn=true;
+  map.getSource("sect-end").setData(turf.point(turf.along(route,b,{units:"kilometers"}).geometry.coordinates));
   const want=(b-a)/(20*0.28);let ix=0;SPEEDS.forEach((s,i)=>{ if(Math.abs(s[1]-want)<Math.abs(SPEEDS[ix][1]-want)) ix=i; });
   speedIx=ix;const sb=document.getElementById("b-speed");if(sb){const q=sb.querySelector("b");if(q)q.textContent=SPEEDS[ix][0]+"×";}
-  progress=a;sectEnd=b;camMode="follow";if(typeof showCam==="function")showCam();
-  map.getSource("cursor").setData(turf.point(turf.along(route,a,{units:"kilometers"}).geometry.coordinates));
-  setPlaying(true);sendProg(true);
+  setPlaying(false);progress=a;sectEnd=b;userOverride=false;camMode="follow";if(typeof showCam==="function")showCam();
+  const p0=turf.along(route,a,{units:"kilometers"}).geometry.coordinates, p1=turf.along(route,Math.min(a+0.01,routeLen),{units:"kilometers"}).geometry.coordinates;
+  map.getSource("cursor").setData(turf.point(p0));sendProg(true);
+  const tok=++sectTok, bb=turf.bbox(sect);
+  map.fitBounds([[bb[0],bb[1]],[bb[2],bb[3]]],{padding:{top:70,bottom:90,left:50,right:80},pitch:0,bearing:0,duration:1400,maxZoom:16});
+  setTimeout(()=>{ if(tok!==sectTok) return;
+    const br=normBearing(turf.bearing(turf.point(p0),turf.point(p1))+BEARING_OFFSET_DEG);
+    map.easeTo({center:p0,bearing:br,pitch:75,zoom:targetZoom,duration:1800});
+    map.once("moveend",()=>{ if(tok!==sectTok) return; camCenter=p0;camBearing=br;currentZoom=targetZoom;lastTs=0;setPlaying(true); });
+  },3400);
 }/*/lp-sect-fn*/
 const SPEEDS=[[1,0.35],[2,0.7],[4,1.4],[8,2.8]];
 let speedIx=0;
