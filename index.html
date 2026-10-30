@@ -350,12 +350,12 @@ function playSection(fa,fb){
   setPlaying(false);progress=a;sectEnd=b;userOverride=false;camMode="follow";if(typeof showCam==="function")showCam();
   const p0=turf.along(route,a,{units:"kilometers"}).geometry.coordinates, p1=turf.along(route,Math.min(a+0.01,routeLen),{units:"kilometers"}).geometry.coordinates;
   map.getSource("cursor").setData(turf.point(p0));sendProg(true);
-  const tok=++sectTok, bb=turf.bbox(sect);
+  const tok=++sectTok, bb=turf.bbox(sect), pad0=map.getPadding();
   map.fitBounds([[bb[0],bb[1]],[bb[2],bb[3]]],{padding:{top:70,bottom:90,left:50,right:80},pitch:0,bearing:0,duration:1400,maxZoom:16});
   setTimeout(()=>{ if(tok!==sectTok) return;
     const br=normBearing(turf.bearing(turf.point(p0),turf.point(p1))+BEARING_OFFSET_DEG);
-    map.easeTo({center:p0,bearing:br,pitch:75,zoom:targetZoom,duration:1800});
-    map.once("moveend",()=>{ if(tok!==sectTok) return; camCenter=p0;camBearing=br;currentZoom=targetZoom;lastTs=0;setPlaying(true); });
+    map.easeTo({center:p0,bearing:br,pitch:75,zoom:START_ZOOM,padding:pad0,duration:1800});
+    map.once("moveend",()=>{ if(tok!==sectTok) return; setPlaying(true);camCenter=p0;camBearing=br;currentZoom=START_ZOOM;targetZoom=START_ZOOM;lastTs=0; });
   },3400);
 }/*/lp-sect-fn*/
 const SPEEDS=[[1,0.35],[2,0.7],[4,1.4],[8,2.8]];
